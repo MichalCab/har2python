@@ -13,5 +13,6 @@ How to get har archive? (http://en.wikipedia.org/wiki/.har)
 <li>Save as HAR with content</li>
 </ol>
 
-
+<code>
 python har2python data\_1.har data_2.har
+</code>
