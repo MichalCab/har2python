@@ -12,7 +12,13 @@ How to get har archive? (http://en.wikipedia.org/wiki/.har)
 <li>click right </li>
 <li>Save as HAR with content</li>
 </ol>
-
+<p>
 <code>
-python har2python data\_1.har data_2.har
+python har2python data_1.har data_2.har
 </code>
+</p>
+<p>
+<code>
+python har2python data_1.har data_2.har --debug
+</code>
+</p>
