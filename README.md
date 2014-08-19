@@ -3,13 +3,13 @@ har2python
 
 How to get har archive? (http://en.wikipedia.org/wiki/.har)
 
-Chrome -> 
-F12 -> 
-Network -> 
-Preserve log (checked) -> 
-go over some sites -> 
-click right -> 
-Save as HAR with content
+1)Chrome -> 
+2)F12 -> 
+3)Network -> 
+4)Preserve log (checked) -> 
+5)go over some sites -> 
+6)click right -> 
+7)Save as HAR with content
 
 
 
