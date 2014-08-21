@@ -24,9 +24,9 @@ python har2python data_1.har data_2.har --debug
 </p>
 
 TODO
-____
+=======
 <ol>
 <li>
-Auto detect which request are needed (many times simulate process, checking return codes, or response body content)¨¨
+Auto detect which request are needed (many times simulate process, checking return codes, or response body content)
 </li>
 </ol>
