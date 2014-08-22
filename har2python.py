@@ -47,10 +47,10 @@ def get_data(har):
             payload_data = {}
             post_data = {}
             if "postData" in request:
-                if "mimeType" in request["postData"] and "text" in request["postData"]:
+                if "mimeType" in request["postData"] and "text" in request["postData"] and "params" not in request["postData"]:
                     request["postData"]["text"] = json.loads(request["postData"]["text"])
                     payload_data = request["postData"]
-                elif "postData" in request["postData"]:
+                else:
                     post_data = decode_data(request["postData"]["params"])
             res.append({
                 "url":url, 
