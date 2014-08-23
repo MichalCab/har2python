@@ -8,7 +8,7 @@ with open(path.join(here, 'DESCRIPTION.rst'), encoding='utf-8') as f:
     long_description = f.read()
     
 with open(path.join(here, 'requirements.txt'), encoding='utf-8') as f:
-    requirements = f.readlines().reaplace("\n","")
+    requirements = f.readlines().replace("\n","")
 
 setup(
     name='har2python',
