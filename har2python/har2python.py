@@ -131,33 +131,33 @@ def compare_data(a, b, first=False, path=""):
             if first:
                 v_b = v_b["value"]
             if k_a == k_b and k_a not in done and v_a != v_b:
-                done.append(k_a) #TODO i think here is problem (same key in json) (solution: path + k_a ?)                    
-                # because '{"key":[1, 2]}'  (need to compare values in list)
+                done.append(path + k_a) #TODO check!
+                ### because '{"key":[1, 2]}'  (need to compare values in list)
                 is_list = True
                 if not isinstance(v_a, list):
                     v_a = [v_a]
                     v_b = [v_b]
                     is_list = False
-
+                ###
                 for index, a_item in enumerate(v_a):
                     index_string = ("[%s]" % index if is_list else "")
-                    b_item = v_b[index]
-                    if a_item != b_item:
-                        dict_a = to_dict(a_item)
-                        dict_b = to_dict(b_item)
-                        if dict_a and dict_b:
-                            path = "" if first else "%s[\"%s\"]%s" % (path, k_a, index_string)
-                            diff.update(compare_data(dict_a, dict_b, path=path))
-                        else:
-                            key = k_a
-                            if is_list:
-                                key = "%s[\"%s\"]%s" % (path, k_a, index_string)
-                            diff.update({
-                                key:[
-                                    {"type":"text","value":a_item}, 
-                                    {"type":"text","value":b_item}
-                                ]
-                            })
+                    b_item = v_b[index] # TODO b have always same lenght ?
+                    if a_item == b_item:
+                        continue
+                    dict_a = to_dict(a_item)
+                    dict_b = to_dict(b_item)
+                    if dict_a and dict_b:
+                        #track path for later replace this place with variable
+                        path = "" if first else "%s[\"%s\"]%s" % (path, k_a, index_string)
+                        diff.update(compare_data(dict_a, dict_b, path=path))
+                    else:
+                        key = k_a
+                        if path != "":
+                            key = "%s[\"%s\"]%s" % (path, k_a, index_string)
+                        diff.update({
+                            key:[{"type":"text","value":a_item}, 
+                                {"type":"text","value":b_item}]
+                        })
     return diff
 
 #TODO can be improved
