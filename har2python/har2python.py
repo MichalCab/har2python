@@ -184,7 +184,12 @@ def compare(entry_a):
             a["url"] = b["url"]
         
         #when url match
+        #TODO what if random order of req with same order
+        #IDEA what if xxx.php;var1=X;var2=Y
         if a["url"] == b["url"]:
+            if debug:
+                print "a)MATCH %s" % a["url"]
+                print "b)MATCH %s" % b["url"]
             a["compare_result"]["get_vars"] = compare_data(a["request"]["get"], 
                                                            b["request"]["get"],
                                                            first=True)
@@ -194,6 +199,10 @@ def compare(entry_a):
             a["compare_result"]["payload_vars"] = compare_data(a["request"]["payload"], 
                                                                b["request"]["payload"], 
                                                                first=True)
+        else:
+            if debug:
+                print "a)NOT MATCH %s" % a["url"]
+                print "b)NOT MATCH %s" % b["url"]
 
 def print_dic(_dict, _vars=[]):
     res = """{"""
@@ -239,15 +248,14 @@ def print_vars(_vars):
             var_counter += 1
         all_vars.append(var_name)
  
-        s = "'%s'" % vals[0]["value"]
-        s2 = "'%s'" % vals[1]["value"]
-        
+        a_val = "'%s'" % vals[0]["value"]
+        b_val = "'%s'" % vals[1]["value"]
         if vals[0]["type"] == "dict":
-            s = pformat(vals[0]["value"])
-            s2 = pformat(vals[1]["value"])
-        
-        data = (var_name, s, s, s2)
-        if len(s) < 80:
+            a_val = pformat(vals[0]["value"])
+            b_val = pformat(vals[1]["value"])
+        data = (var_name, a_val, a_val, b_val)
+
+        if len(a_val) < 80:
             res += """
         %s = %s
         #TODO values: %s #VS %s
