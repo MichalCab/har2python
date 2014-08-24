@@ -26,6 +26,7 @@ footer_file = "footer.sab"
 debug = [1 for v in sys.argv if v == "--debug"]
 
 def to_dict(data):
+    """Convert json to dict data, if input is not json return None"""
     if isinstance(data, dict):
         return data
     try:
@@ -37,7 +38,7 @@ def to_dict(data):
         return None
 
 def decode_data(data):
-    """load params to dict with python objects (json/strings)"""
+    """Load POST/GET http data to dict with python objects (json/strings)"""
     post_data = {}
     for param in data:
         _type = "text"
@@ -73,11 +74,11 @@ def parse_har(har):
                 if ("mimeType" in request["postData"] and 
                         "text" in request["postData"] and 
                         "params" not in request["postData"]):
-                    #payload
+                    #parse payload data
                     request["postData"]["text"]["value"] = json.loads(request["postData"]["text"])
                     payload_data = request["postData"]
                 else:
-                    #post
+                    #parse post data
                     post_data = decode_data(request["postData"]["params"])
             request = {
                 "get":get_data,
@@ -101,7 +102,10 @@ def parse_har(har):
             })
     return res  
 
+
+#TODO rewrite this (too unclear)
 def compare_data(a,b, first=False, path=""):
+    """Compare two POST/GET data and save """
     diff = {}
     done = []
     for k_a, v_a in a.items():
@@ -111,33 +115,34 @@ def compare_data(a,b, first=False, path=""):
             if first:
                 v_b = v_b["value"]
             if k_a == k_b and k_a not in done and v_a != v_b:
-                done.append(k_a)
+                done.append(k_a) #TODO i think here is problem (same key in json) (path + k_a ?)
+                    
+                # because '{"key":[1, 2]}'  (need to compare values in list)
                 is_list = True
                 if not isinstance(v_a, list):
                     v_a = [v_a]
                     v_b = [v_b]
                     is_list = False
+
                 for index, a_item in enumerate(v_a):
                     index_string = ("[%s]" % index if is_list else "")
                     b_item = v_b[index]
-                    dict_a = to_dict(a_item)
-                    dict_b = to_dict(b_item)
-                    if dict_a and dict_b:
-                        if not first:
-                            path = "%s[\"%s\"]%s" % (path, k_a, index_string)
+                    if a_item != b_item:
+                        dict_a = to_dict(a_item)
+                        dict_b = to_dict(b_item)
+                        if dict_a and dict_b:
+                            path = "" if first else "%s[\"%s\"]%s" % (path, k_a, index_string)
+                            diff.update(compare_data(dict_a, dict_b, path=path))
                         else:
-                            path=""
-                        diff.update(compare_data(dict_a, dict_b, path=path))
-                    else:
-                        key = k_a
-                        if is_list:
-                            key = "%s[\"%s\"]%s" % (path, k_a, index_string)
-                        diff.update({
-                            key:[
-                                {"type":"text","value":a_item}, 
-                                {"type":"text","value":b_item}
-                            ]
-                        })
+                            key = k_a
+                            if is_list:
+                                key = "%s[\"%s\"]%s" % (path, k_a, index_string)
+                            diff.update({
+                                key:[
+                                    {"type":"text","value":a_item}, 
+                                    {"type":"text","value":b_item}
+                                ]
+                            })
     return diff
 
 def compare(entry_a):
@@ -173,12 +178,15 @@ def compare(entry_a):
 
 def print_dic(_dict, _vars=[]):
     res = """{"""
+    variables_in_json = []
+    #variables in json data
     for k,v in _vars.items():
         if "[" in k:
             for key, val in  _dict.items():
                 try:
+                    var_name = '_'+re.sub(r'\W+', '', k)
                     exec "_dict['%s']['value']%s = '_'+re.sub(r'\W+', '', k)" % (key, k)
-                    exec "print _dict['%s']['value']%s" % (key, k)
+                    variables_in_json.append(var_name)
                 except:
                     pass
     for key, val in  _dict.items():
@@ -192,6 +200,8 @@ def print_dic(_dict, _vars=[]):
             s = "'%s'" % val["value"]
             if val["type"] == "json":
                 s = pformat(val["value"])
+                for _var_in_json in variables_in_json:
+                    s = s.replace("u'%s'" % _var_in_json, "%s" %_var_in_json)
             res += """
             '%s' : %s,""" % (key, s)
     res += """
@@ -199,6 +209,7 @@ def print_dic(_dict, _vars=[]):
     return res
 
 def print_vars(_vars):
+    """Print variables (only if two files compare is used)"""
     res = "" 
     all_vars = []
     var_counter = 0
@@ -224,7 +235,8 @@ def print_vars(_vars):
         #TODO values: %s #VS %s
         """ % data
         else:
-            res += """%s = %s
+            res += """
+        %s = %s
         #TODO values:
         \"\"\"
         %s
@@ -237,6 +249,7 @@ def print_vars(_vars):
     return res
 
 def make_request(entry):
+    """create python code for grab http request"""
     py = ""
     #get
     if len(entry["request"]["get"]) > 0:
@@ -275,9 +288,13 @@ def make_request(entry):
     return py
 
 if __name__ == "__main__":
+    #get list of entries 
+    #(1 entry = http req(data, header, GET/POST data)+response(html/json content)) 
+    #loaded from har file
     entries = parse_har(sys.argv[1])
 
-    #if two files on input, compare them
+    #if two files (same HAR files just with different values) on input, compare them
+    #is used for create variables in code
     if len(sys.argv) >= 3:
         compare(entries)
 
