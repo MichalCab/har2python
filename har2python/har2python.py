@@ -38,17 +38,31 @@ def to_dict(data):
         return None
 
 def decode_data(data):
-    """Load POST/GET http data to dict with python objects (json/strings)"""
+    """
+    Load POST/GET http data to dict with python objects (json/strings)
+    Used in har parser
+
+    return example
+    type = ["text", "dict"]
+    data = [str, dict]
+    {
+        "key": 
+        {
+            "type" : type,
+            "value" : data
+        }
+    }
+    """
     post_data = {}
     for param in data:
         _type = "text"
-        value = to_dict(urllib.unquote(param["value"]).decode('utf-8'))
-        if value:
-            _type = "json"
-        else:
-            value = urllib.unquote(param["value"]).decode('utf-8')
-
         name = urllib.unquote(param["name"]).decode('utf-8')
+        data = urllib.unquote(param["value"]).decode('utf-8')
+        value = to_dict(data)
+        if value is not None:
+            _type = "dict"
+        else:
+            value = data
         post_data[name] = {"type":_type, "value":value}
     return post_data
 
@@ -75,7 +89,7 @@ def parse_har(har):
                         "text" in request["postData"] and 
                         "params" not in request["postData"]):
                     #parse payload data
-                    request["postData"]["text"]["value"] = json.loads(request["postData"]["text"])
+                    request["postData"]["text"] = json.loads(request["postData"]["text"])
                     payload_data = request["postData"]
                 else:
                     #parse post data
@@ -102,10 +116,12 @@ def parse_har(har):
             })
     return res  
 
-
 #TODO rewrite this (too unclear)
-def compare_data(a,b, first=False, path=""):
-    """Compare two POST/GET data and save """
+def compare_data(a, b, first=False, path=""):
+    """
+    Compare two POST/GET data and save
+    Is called form compare(entry_a)
+    """
     diff = {}
     done = []
     for k_a, v_a in a.items():
@@ -115,8 +131,7 @@ def compare_data(a,b, first=False, path=""):
             if first:
                 v_b = v_b["value"]
             if k_a == k_b and k_a not in done and v_a != v_b:
-                done.append(k_a) #TODO i think here is problem (same key in json) (path + k_a ?)
-                    
+                done.append(k_a) #TODO i think here is problem (same key in json) (solution: path + k_a ?)                    
                 # because '{"key":[1, 2]}'  (need to compare values in list)
                 is_list = True
                 if not isinstance(v_a, list):
@@ -145,18 +160,22 @@ def compare_data(a,b, first=False, path=""):
                             })
     return diff
 
+#TODO can be improved
 def compare(entry_a):
+    """
+    Compare two har files 
+    Comparing POST/PAYLOAD/GET data
+    """
     entry_b = parse_har(sys.argv[2])
-    for i,_a in enumerate(entry_a):
+    for i,a in enumerate(entry_a):
         if i < len(entry_b):
             b = entry_b[i]
-            a = _a
 
         #HTTPS vs HTTP
         if a["url"][5:] == b["url"][4:]:
-            b["url"] = "https"+b["url"][4:]
+            b["url"] = "https%s" % b["url"][4:]
         if a["url"][4:] == b["url"][5:]:
-            a["url"] = "https"+a["url"][4:]
+            a["url"] = "https%s" % a["url"][4:]
 
         #www. vs without www.
         if a["url"].replace("www.","") == b["url"]:
@@ -166,15 +185,15 @@ def compare(entry_a):
         
         #when url match
         if a["url"] == b["url"]:
-            #if debug:
-            #    print "MATCH", a["url"], b["url"]
-            a["compare_result"]["get_vars"] = compare_data(a["request"]["get"], b["request"]["get"], True)
-            a["compare_result"]["post_vars"] = compare_data(a["request"]["post"], b["request"]["post"], True)
-            a["compare_result"]["payload_vars"] = compare_data(a["request"]["payload"], b["request"]["payload"], True)
-        else:
-            if debug:
-                print "NOT MATCH", a["url"], b["url"]
-            continue
+            a["compare_result"]["get_vars"] = compare_data(a["request"]["get"], 
+                                                           b["request"]["get"],
+                                                           first=True)
+            a["compare_result"]["post_vars"] = compare_data(a["request"]["post"], 
+                                                            b["request"]["post"], 
+                                                            first=True)
+            a["compare_result"]["payload_vars"] = compare_data(a["request"]["payload"], 
+                                                               b["request"]["payload"], 
+                                                               first=True)
 
 def print_dic(_dict, _vars=[]):
     res = """{"""
@@ -191,18 +210,17 @@ def print_dic(_dict, _vars=[]):
                     pass
     for key, val in  _dict.items():
         if key in _vars:
-            var_name = "_"+re.sub("\W+", "", key)
-            if val["type"] == "json":
-                var_name = "ujson.dumps(%s)" % var_name
-            res += """
-            '%s' : %s,""" % (key, var_name)
+            s = "_%s" % re.sub("\W+", "", key)
+            if val["type"] == "dict":
+                s = "ujson.dumps(%s)" % s
         else:
             s = "'%s'" % val["value"]
-            if val["type"] == "json":
-                s = pformat(val["value"])
+            if val["type"] == "dict":
+                s = "ujson.dumps(%s)" % pformat(val["value"])
+                #create variables in json
                 for _var_in_json in variables_in_json:
-                    s = s.replace("u'%s'" % _var_in_json, "%s" %_var_in_json)
-            res += """
+                    s = s.replace("u'%s'" % _var_in_json, "%s" % _var_in_json)
+        res += """
             '%s' : %s,""" % (key, s)
     res += """
         }"""
@@ -224,7 +242,7 @@ def print_vars(_vars):
         s = "'%s'" % vals[0]["value"]
         s2 = "'%s'" % vals[1]["value"]
         
-        if vals[0]["type"] == "json":
+        if vals[0]["type"] == "dict":
             s = pformat(vals[0]["value"])
             s2 = pformat(vals[1]["value"])
         
@@ -250,41 +268,37 @@ def print_vars(_vars):
 
 def make_request(entry):
     """create python code for grab http request"""
+    url = entry["url"]
+    url_option = ""
     py = ""
     #get
     if len(entry["request"]["get"]) > 0:
         data = (print_vars(entry["compare_result"]["get_vars"]),
-                print_dic(entry["request"]["get"], entry["compare_result"]["get_vars"]),
-                entry["url"]+"?",
-                "+urllib.urlencode(get_data)")
+                print_dic(entry["request"]["get"], entry["compare_result"]["get_vars"]))
         py += """%s
         get_data = %s
-        g.go("%s"%s)
         """ % data
+        url_option = "+'?'+urllib.urlencode(get_data)"
     #post
     if len(entry["request"]["post"]) > 0:
         data = (print_vars(entry["compare_result"]["post_vars"]),
-                print_dic(entry["request"]["post"], entry["compare_result"]["post_vars"]),
-                entry["url"])
+                print_dic(entry["request"]["post"], entry["compare_result"]["post_vars"]))
         py += """%s
         post_data = %s
         g.setup(post=post_data)
-        g.go("%s")
         """ % data
-
     #payload
     if len(entry["request"]["payload"]) > 0:
         data = (print_vars(entry["compare_result"]["payload_vars"]),
                 entry["request"]["payload"]["mimeType"],
-                print_dic(entry["request"]["payload"]["text"],entry["compare_result"]["payload_vars"]),
-                entry["url"])
+                print_dic(entry["request"]["payload"]["text"],entry["compare_result"]["payload_vars"]))
         py += """%s
         headers = {"Content-Type":"%s"}
         payload_data = %s
         g.setup(post=ujson.dumps(payload_data), headers=headers)
-        g.go("%s")
         """ % data
-
+    py += """
+        g.go('%s'%s)""" % (url, url_option)
     return py
 
 if __name__ == "__main__":
