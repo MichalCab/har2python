@@ -55,15 +55,18 @@ def decode_data(data):
     """
     post_data = {}
     for param in data:
-        _type = "text"
-        name = urllib.unquote(param["name"]).decode('utf-8')
-        data = urllib.unquote(param["value"]).decode('utf-8')
-        value = to_dict(data)
-        if value is not None:
-            _type = "dict"
-        else:
-            value = data
-        post_data[name] = {"type":_type, "value":value}
+        try:
+            _type = "text"
+            name = urllib.unquote(param["name"]).decode('utf-8')
+            data = urllib.unquote(param["value"]).decode('utf-8')
+            value = to_dict(data)
+            if value is not None:
+                _type = "dict"
+            else:
+                value = data
+            post_data[name] = {"type":_type, "value":value}
+        except:
+            pass
     return post_data
 
 def parse_har(har):
@@ -74,6 +77,7 @@ def parse_har(har):
         for h in har["log"]["entries"]:
             request = h["request"]
             url = request["url"].split("?")[0]
+            real_url = request["url"]
             #filter entries
             if (url[-3:].lower() in exclude or url[-4:].lower() in exclude or 
                     url[-5:].lower() in exclude or url[-9:].lower() in exclude or
@@ -110,6 +114,7 @@ def parse_har(har):
             }
             res.append({
                 "url":url,
+                "real_url":real_url,
                 "request":request,
                 "compare_result":compare_result,
                 "response":response
@@ -309,6 +314,17 @@ def make_request(entry):
         g.go('%s'%s)""" % (url, url_option)
     return py
 
+"""
+def diff_final_script():
+    f = open("final.py", "r")
+    lines = f.readlines("\n")
+    changed_lines = []
+    for line in lines:
+        if line.strip().startwith("#REQ"):
+            #start comparing next
+            #WORK HERE
+"""
+
 if __name__ == "__main__":
     #get list of entries 
     #(1 entry = http req(data, header, GET/POST data)+response(html/json content)) 
@@ -323,11 +339,16 @@ if __name__ == "__main__":
     #prepare script content...
     py = open("%s%s" % (template_path, header_file), "rb").read()
     make_req = True
+    num = 0
     for entry in entries:
         #build request code
         if make_req:
+            py += """
+        #REQ_NUM_%s""" % num
             py += make_request(entry)
-        else: make_req = True
+            num += 1 
+        else: 
+            make_req = True
 
         #redirection
         if entry["response"]["status"][0] == "3":
