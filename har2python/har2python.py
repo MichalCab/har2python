@@ -337,7 +337,11 @@ if __name__ == "__main__":
         compare(entries)
 
     #prepare script content...
-    py = open("%s%s" % (template_path, header_file), "rb").read()
+    py = ""
+    try:
+        py = open("%s%s" % (template_path, header_file), "rb").read()
+    except:
+        pass
     make_req = True
     num = 0
     for entry in entries:
@@ -366,8 +370,11 @@ if __name__ == "__main__":
         print "to " + g.response.url
         print g.response.code
 """ % data
-    py += open("%s%s" % (template_path, footer_file), 'rb').read()
-    #...prepared
+    try:
+        py += open("%s%s" % (template_path, footer_file), 'rb').read()
+        #...prepared
+    except:
+        pass
 
     if not debug:
         print py
