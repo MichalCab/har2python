@@ -32,12 +32,5 @@ setup(
     install_requires=requirements,
     package_data={
         'sample': [''],
-    },
-
-    data_files=[('', [''])],
-    entry_points={
-        'console_scripts': [
-            'har2python=har2python:main',
-        ],
-    },
+    }
 )
