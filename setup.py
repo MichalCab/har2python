@@ -29,5 +29,10 @@ setup(
 
     keywords='har request http generate code',
     packages=find_packages(exclude=['examples', 'docs', 'tests*']),
-    install_requires=requirements
+    install_requires=requirements,
+    entry_points={
+    'console_scripts': [
+        'har2python=har2python:main',
+    ],
+},
 )
