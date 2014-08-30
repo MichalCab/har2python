@@ -28,9 +28,6 @@ setup(
     ],
 
     keywords='har request http generate code',
-    packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
-    install_requires=requirements,
-    package_data={
-        'sample': [''],
-    }
+    packages=find_packages(exclude=['examples', 'docs', 'tests*']),
+    install_requires=requirements
 )
