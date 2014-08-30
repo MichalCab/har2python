@@ -8,7 +8,7 @@ with open(path.join(here, 'DESCRIPTION.rst'), encoding='utf-8') as f:
     long_description = f.read()
     
 with open(path.join(here, 'requirements.txt'), encoding='utf-8') as f:
-    requirements = f.readlines().replace("\n","")
+    requirements = f.read().splitlines()
 
 setup(
     name='har2python',
@@ -28,16 +28,11 @@ setup(
     ],
 
     keywords='har request http generate code',
-    packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
+    packages=find_packages(exclude=['examples', 'docs', 'tests*']),
     install_requires=requirements,
-    package_data={
-        'sample': [''],
-    },
-
-    data_files=[('', [''])],
     entry_points={
-        'console_scripts': [
-            'har2python=har2python:main',
-        ],
-    },
+    'console_scripts': [
+        'har2python=har2python:main',
+    ],
+},
 )
