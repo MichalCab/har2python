@@ -9,8 +9,11 @@ pip install git+git://github.com/MichalCab/har2python.git
 </code>
 </p>
 
-How to get har archive? (http://en.wikipedia.org/wiki/.har)
-
+How to get har archive? 
+---------
+<p>
+what is har archive (http://en.wikipedia.org/wiki/.har, http://www.softwareishard.com/blog/har-12-spec/)
+</p>
 <ol>
 <li>Chrome </li>
 <li>F12 </li>
