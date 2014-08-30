@@ -325,7 +325,7 @@ def diff_final_script():
             #WORK HERE
 """
 
-if __name__ == "__main__":
+def main():
     #get list of entries 
     #(1 entry = http req(data, header, GET/POST data)+response(html/json content)) 
     #loaded from har file
@@ -378,3 +378,6 @@ if __name__ == "__main__":
 
     if not debug:
         print py
+
+if __name__ == "__main__":
+    main()
