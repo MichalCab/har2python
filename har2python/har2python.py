@@ -56,17 +56,25 @@ def decode_data(data):
     post_data = {}
     for param in data:
         try:
-            _type = "text"
             name = urllib.unquote(param["name"]).decode('utf-8')
-            data = urllib.unquote(param["value"]).decode('utf-8')
-            value = to_dict(data)
-            if value is not None:
-                _type = "dict"
-            else:
-                value = data
-            post_data[name] = {"type":_type, "value":value}
         except:
-            pass
+            name = "PROBLEM_HERE"
+        try:
+            data = urllib.unquote(param["value"]).decode('utf-8')
+        except:
+            data = "PROBLEM HERE"
+
+        _type = "text"
+        value = to_dict(data)
+        if value is not None:
+            _type = "dict"
+        else:
+            value = data
+        i = 0
+        while name in post_data and post_data[name][:-1] == "PROBLEM HERE":
+            name += str(i)
+            i += 1 
+        post_data[name] = {"type":_type, "value":value}
     return post_data
 
 def parse_har(har):
@@ -130,10 +138,10 @@ def compare_data(a, b, first=False, path=""):
     diff = {}
     done = []
     for k_a, v_a in a.items():
-        if first:
+        if first and "value" in v_a:
             v_a = v_a["value"]
         for k_b, v_b in b.items():
-            if first:
+            if first and "value" in v_b:
                 v_b = v_b["value"]
             if k_a == k_b and k_a not in done and v_a != v_b:
                 done.append(path + k_a) #TODO check!
@@ -304,14 +312,15 @@ def make_request(entry):
     if len(entry["request"]["payload"]) > 0:
         data = (print_vars(entry["compare_result"]["payload_vars"]),
                 entry["request"]["payload"]["mimeType"],
-                print_dic(entry["request"]["payload"]["text"],entry["compare_result"]["payload_vars"]))
+                entry["request"]["payload"]["text"])#, entry["compare_result"]["payload_vars"]))
         py += """%s
         headers = {"Content-Type":"%s"}
         payload_data = %s
         g.setup(post=ujson.dumps(payload_data), headers=headers)
         """ % data
     py += """
-        g.go('%s'%s)""" % (url, url_option)
+        g.go('%s'%s)
+        #self.save_file(filename="airline.html",path = "", body=g.response.body)""" % (url, url_option)
     return py
 
 """
@@ -349,7 +358,18 @@ if __name__ == "__main__":
         if make_req:
             py += """
         #REQ_NUM_%s""" % num
+            #cookie info
+            if len(entry["response"]["cookies"]) > 0:
+                py += """
+        #SETTING COOKIES"""
             py += make_request(entry)
+            #response status
+            data = (entry["url"])
+            py += """
+        print "from %s"
+        print "to " + g.response.url
+        print g.response.code
+""" % data
             num += 1 
         else: 
             make_req = True
@@ -357,19 +377,6 @@ if __name__ == "__main__":
         #redirection
         if entry["response"]["status"][0] == "3":
             make_req = False
-
-        #cookie info
-        if len(entry["response"]["cookies"]) > 0:
-            py += """
-        #SETTING COOKIES"""
-
-        #response status
-        data = (entry["url"])
-        py += """
-        print "from %s"
-        print "to " + g.response.url
-        print g.response.code
-""" % data
     try:
         py += open("%s%s" % (template_path, footer_file), 'rb').read()
         #...prepared
