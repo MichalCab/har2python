@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
 import sys
 import os
 import json
@@ -58,7 +59,7 @@ def decode_data(data):
         try:
             name = urllib.unquote(param["name"]).decode('utf-8')
         except:
-            name = "PROBLEM_HERE"
+            name = "PROBLEM_HERE0"
         try:
             data = urllib.unquote(param["value"]).decode('utf-8')
         except:
@@ -70,10 +71,13 @@ def decode_data(data):
             _type = "dict"
         else:
             value = data
+
         i = 0
-        while name in post_data and post_data[name][:-1] == "PROBLEM HERE":
+        while name in post_data and post_data[name]["value"][:-1] == "PROBLEM_HERE":
             name += str(i)
+            print(name)
             i += 1 
+        
         post_data[name] = {"type":_type, "value":value}
     return post_data
 
@@ -81,7 +85,11 @@ def parse_har(har):
     """parse_har file"""
     res = []
     with open(har) as json_data:
-        har = json.load(json_data)
+        try:
+            har = json.load(json_data)
+        except:
+            warning("file '%s' is not har file" % har)
+            exit(1)
         for h in har["log"]["entries"]:
             request = h["request"]
             url = request["url"].split("?")[0]
@@ -201,8 +209,8 @@ def compare(entry_a):
         #IDEA what if xxx.php;var1=X;var2=Y
         if a["url"] == b["url"]:
             if debug:
-                print "a)MATCH %s" % a["url"]
-                print "b)MATCH %s" % b["url"]
+                print("a)MATCH %s" % a["url"])
+                print("b)MATCH %s" % b["url"])
             a["compare_result"]["get_vars"] = compare_data(a["request"]["get"], 
                                                            b["request"]["get"],
                                                            first=True)
@@ -214,8 +222,8 @@ def compare(entry_a):
                                                                first=True)
         else:
             if debug:
-                print "a)NOT MATCH %s" % a["url"]
-                print "b)NOT MATCH %s" % b["url"]
+                print("a)NOT MATCH %s" % a["url"])
+                print("b)NOT MATCH %s" % b["url"])
 
 def print_dic(_dict, _vars=[]):
     res = """{"""
@@ -334,10 +342,31 @@ def diff_final_script():
             #WORK HERE
 """
 
+def warning(*objs):
+    print("WARNING: ", *objs, file=sys.stderr)
+
+def help():
+    print("""
+    Create script from har file
+    'har2python data1.har > script.py'
+
+    Compare 2 same har files and create script with variables
+    'har2python data1.har data2.har > script.py'
+
+    Print out some debug info
+    'har2python data1.har --debug'
+    'har2python data1.har data2.har --debug'
+""")
+
 def main():
     #get list of entries 
     #(1 entry = http req(data, header, GET/POST data)+response(html/json content)) 
     #loaded from har file
+
+    if len(sys.argv) < 2:
+        help()
+        exit(1)
+
     entries = parse_har(sys.argv[1])
 
     #if two files (same HAR files just with different values) on input, compare them
@@ -384,7 +413,9 @@ def main():
         pass
 
     if not debug:
-        print py
+        print(py)
+
+    exit()
 
 if __name__ == "__main__":
     main()
