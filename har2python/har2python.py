@@ -15,7 +15,7 @@ __author__ = "Michal Cab <majklcab at gmail.com>"
 
 exclude = [".js", ".bs", ".png", ".jpg", ".gif", ".css", ".inc", 
            ".css.xhtml", ".js.xhtml", ".png.xhtml", ".gif.xhtml", 
-           ".woff", ".jpg.xhtml", ".ttf",".jpeg"
+           ".woff", ".jpg.xhtml", ".ttf",".jpeg",".swf"
           ]
 
 todo_lenght = 10000
@@ -75,7 +75,6 @@ def decode_data(data):
         i = 0
         while name in post_data and post_data[name]["value"][:-1] == "PROBLEM_HERE":
             name += str(i)
-            print(name)
             i += 1 
         
         post_data[name] = {"type":_type, "value":value}
@@ -98,7 +97,12 @@ def parse_har(har):
             if (url[-3:].lower() in exclude or url[-4:].lower() in exclude or 
                     url[-5:].lower() in exclude or url[-9:].lower() in exclude or
                     url[-10:].lower() in exclude or "google" in url or "facebook" in url or
-                    "doubleclick" in url):
+                    "doubleclick" in url
+                    or "webvisor" in url or "yandex" in url or "monetate.net" in url
+                    or "cloudfront.net" in url or "h4k5.com" in url or "ssl.hurra.com" in url or
+                    "secure.adnxs.com/px" in url and "swa.demdex.net" in url or "h.online-metrix.net" in url
+                    or "ssl.vizury.com" in url or "www.vizury.com/analyze" in url or "country_specific_menu_dropdown" in url
+                    or "ib.adnxs.com" in url):
                 continue
             #parse GET data
             get_data = decode_data(request["queryString"])
@@ -128,6 +132,11 @@ def parse_har(har):
                 "cookies": h["response"]["cookies"],
                 "status": str(h["response"]["status"])
             }
+            if (len(request["get"]) is 0 and
+                len(request["post"]) is 0 and
+                len(request["payload"]) is 0 and
+                len(response["cookies"]) is 0):
+                continue
             res.append({
                 "url":url,
                 "real_url":real_url,
@@ -152,7 +161,7 @@ def compare_data(a, b, first=False, path=""):
             if first and "value" in v_b:
                 v_b = v_b["value"]
             if k_a == k_b and k_a not in done and v_a != v_b:
-                done.append(path + k_a) #TODO check!
+                done.append(path + k_a) #TODO check! I think, checked
                 ### because '{"key":[1, 2]}'  (need to compare values in list)
                 is_list = True
                 if not isinstance(v_a, list):
@@ -279,12 +288,12 @@ def print_vars(_vars):
         if len(a_val) < 80:
             res += """
         %s = %s
-        #TODO values: %s #VS %s
+        #values: %s #VS %s
         """ % data
         else:
             res += """
         %s = %s
-        #TODO values:
+        #values:
         \"\"\"
         %s
         \"\"\"
@@ -328,7 +337,7 @@ def make_request(entry):
         """ % data
     py += """
         g.go('%s'%s)
-        #self.save_file(filename="airline.html",path = "", body=g.response.body)""" % (url, url_option)
+        #self.save_file(filename="airline.html",path = "./", body=g.response.body)""" % (url, url_option)
     return py
 
 """
@@ -354,7 +363,6 @@ def help():
     'har2python data1.har data2.har > script.py'
 
     Print out some debug info
-    'har2python data1.har --debug'
     'har2python data1.har data2.har --debug'
 """)
 
@@ -378,13 +386,18 @@ def main():
     py = ""
     try:
         py = open("%s%s" % (template_path, header_file), "rb").read()
+        py = py.replace("code = \"\"","code = \"%s\""%sys.argv[1][0:2])
     except:
         pass
     make_req = True
     num = 0
     for entry in entries:
         #build request code
-        if make_req:
+        if ((make_req or 
+                (len(entry["request"]["get"]) > 0 or 
+                len(entry["request"]["post"]) > 0 or
+                len(entry["request"]["payload"]) > 0 or
+                len(entry["response"]["cookies"]) > 0))): 
             py += """
         #REQ_NUM_%s""" % num
             #cookie info
@@ -393,14 +406,12 @@ def main():
         #SETTING COOKIES"""
             py += make_request(entry)
             #response status
-            data = (entry["url"])
             py += """
-        print "from %s"
-        print "to " + g.response.url
         print g.response.code
-""" % data
+"""
             num += 1 
-        else: 
+        else:
+            print(entry["url"])
             make_req = True
 
         #redirection
