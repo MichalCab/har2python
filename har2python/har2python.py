@@ -102,7 +102,7 @@ def parse_har(har):
                     or "cloudfront.net" in url or "h4k5.com" in url or "ssl.hurra.com" in url or
                     "secure.adnxs.com/px" in url and "swa.demdex.net" in url or "h.online-metrix.net" in url
                     or "ssl.vizury.com" in url or "www.vizury.com/analyze" in url or "country_specific_menu_dropdown" in url
-                    or "ib.adnxs.com" in url):
+                    or "ib.adnxs.com" in url or "twitter" in url):
                 continue
             #parse GET data
             get_data = decode_data(request["queryString"])
@@ -127,6 +127,9 @@ def parse_har(har):
                 "get_vars":{},
                 "post_vars":{},
                 "payload_vars":{},
+                "get_miss":{},
+                "post_miss":{},
+                "payload_miss":{},
             }
             response = {
                 "cookies": h["response"]["cookies"],
@@ -188,7 +191,15 @@ def compare_data(a, b, first=False, path=""):
                             key:[{"type":"text","value":a_item}, 
                                 {"type":"text","value":b_item}]
                         })
+    #print(diff)
     return diff
+
+def find_missing_data(a, b):
+    res = []
+    for k in a.keys():
+        if k not in b:
+            res.append(k)
+    return res
 
 #TODO can be improved
 def compare(entry_a):
@@ -229,12 +240,22 @@ def compare(entry_a):
             a["compare_result"]["payload_vars"] = compare_data(a["request"]["payload"], 
                                                                b["request"]["payload"], 
                                                                first=True)
+
+            a["compare_result"]["get_miss"] = find_missing_data(a["request"]["get"],
+                                                           b["request"]["get"],
+                                                           )
+            a["compare_result"]["post_miss"] = find_missing_data(a["request"]["post"],
+                                                            b["request"]["post"],
+                                                            )
+            a["compare_result"]["payload_miss"] = find_missing_data(a["request"]["payload"],
+                                                               b["request"]["payload"],
+                                                               )
         else:
             if debug:
                 print("a)NOT MATCH %s" % a["url"])
                 print("b)NOT MATCH %s" % b["url"])
 
-def print_dic(_dict, _vars=[]):
+def print_dic(_dict, _vars=[], miss=[]):
     res = """{"""
     variables_in_json = []
     #variables in json data
@@ -259,8 +280,9 @@ def print_dic(_dict, _vars=[]):
                 #create variables in json
                 for _var_in_json in variables_in_json:
                     s = s.replace("u'%s'" % _var_in_json, "%s" % _var_in_json)
+        comment = " # missing in B" if key in miss else ""
         res += """
-            '%s' : %s,""" % (key, s)
+            '%s' : %s,""" % (key, s, comment)
     res += """
         }"""
     return res
@@ -312,7 +334,8 @@ def make_request(entry):
     #get
     if len(entry["request"]["get"]) > 0:
         data = (print_vars(entry["compare_result"]["get_vars"]),
-                print_dic(entry["request"]["get"], entry["compare_result"]["get_vars"]))
+                print_dic(entry["request"]["get"], entry["compare_result"]["get_vars"], 
+                          entry["compare_result"]["get_miss"]))
         py += """%s
         get_data = %s
         """ % data
@@ -320,7 +343,8 @@ def make_request(entry):
     #post
     if len(entry["request"]["post"]) > 0:
         data = (print_vars(entry["compare_result"]["post_vars"]),
-                print_dic(entry["request"]["post"], entry["compare_result"]["post_vars"]))
+                print_dic(entry["request"]["post"], entry["compare_result"]["post_vars"],
+                          entry["compare_result"]["post_miss"]))
         py += """%s
         post_data = %s
         g.setup(post=post_data)
