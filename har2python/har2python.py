@@ -142,6 +142,7 @@ def parse_har(har):
                 continue
             res.append({
                 "url":url,
+                "expected_url":"",
                 "real_url":real_url,
                 "request":request,
                 "compare_result":compare_result,
@@ -282,7 +283,7 @@ def print_dic(_dict, _vars=[], miss=[]):
                     s = s.replace("u'%s'" % _var_in_json, "%s" % _var_in_json)
         comment = " # missing in B" if key in miss else ""
         res += """
-            '%s' : %s,""" % (key, s, comment)
+            '%s' : %s, %s""" % (key, s, comment)
     res += """
         }"""
     return res
@@ -449,7 +450,6 @@ def main():
 
     if not debug:
         print(py)
-
     exit()
 
 if __name__ == "__main__":
