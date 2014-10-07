@@ -38,6 +38,6 @@ TODO
 --------
 <ol>
 <li>
-Auto detect which request are needed (many times simulate process, checking return codes, or response body content)
+if more keys with same name in post [(),()]
 </li>
 </ol>
