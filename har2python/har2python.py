@@ -92,18 +92,26 @@ def parse_har(har):
         for h in har["log"]["entries"]:
             request = h["request"]
             url = request["url"].split("?")[0]
+            url = url.replace("40hkxp55ipiwn055hmjppsyj","0qi25e45dtiebw55n53k2xrd")
             real_url = request["url"]
             #filter entries
+            
             if (url[-3:].lower() in exclude or url[-4:].lower() in exclude or 
                     url[-5:].lower() in exclude or url[-9:].lower() in exclude or
-                    url[-10:].lower() in exclude or "google" in url or "facebook" in url or
+                    url[-10:].lower() in exclude
+                
+                    or "google" in url or "facebook" in url or
                     "doubleclick" in url
                     or "webvisor" in url or "yandex" in url or "monetate.net" in url
                     or "cloudfront.net" in url or "h4k5.com" in url or "ssl.hurra.com" in url or
                     "secure.adnxs.com/px" in url and "swa.demdex.net" in url or "h.online-metrix.net" in url
                     or "ssl.vizury.com" in url or "www.vizury.com/analyze" in url or "country_specific_menu_dropdown" in url
-                    or "ib.adnxs.com" in url or "twitter" in url):
+                    or "ib.adnxs.com" in url or "twitter" in url or "sky-lighter.appspot.com" in url or
+                    "orbitz.tt.omtrdc.net" in url or "smetrics." in url or "omtrdc.net" in url 
+                    or "vehicleimage" in url or "css/styles" in url):
+                
                 continue
+           
             #parse GET data
             get_data = decode_data(request["queryString"])
             payload_data = {}
@@ -440,8 +448,8 @@ def main():
             make_req = True
 
         #redirection
-        if entry["response"]["status"][0] == "3":
-            make_req = False
+        #if entry["response"]["status"][0] == "3":
+        #    make_req = False
     try:
         py += open("%s%s" % (template_path, footer_file), 'rb').read()
         #...prepared
