@@ -356,6 +356,7 @@ def make_request(entry):
                           entry["compare_result"]["post_miss"]))
         py += """%s
         post_data = %s
+        pp(post_data)
         g.setup(post=post_data)
         """ % data
     #payload
